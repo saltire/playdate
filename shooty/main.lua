@@ -2,48 +2,43 @@ import 'CoreLibs/object'
 import 'CoreLibs/graphics'
 import 'CoreLibs/sprites'
 import 'CoreLibs/timer'
+import 'CoreLibs/ui'
+
+import 'utils'
 
 local gfx <const> = playdate.graphics
 local pressed <const> = playdate.buttonIsPressed
 
-
-local playerSprite = nil
 
 local lastElapsed = 0
 
 local cx, cy = 200, 120 -- Camera position
 local cvx, cvy = 0, 0 -- Camera velocity
 
-function clamp(x, min, max)
-  return math.max(min, math.min(max, x))
-end
-
-function mod(a, m)
-  return a - (m * math.floor(a / m))
-end
-
-function sign(n)
-  if n > 0 then return 1 end
-  if n < 0 then return -1 end
-  return 0
-end
+local playerSprite = nil
+local arrowSprite = nil
+local playerDir = 5
+local playerTable = nil
 
 function setup()
-  local playerImage = gfx.image.new('images/player.png')
-  assert(playerImage)
-
+  local backgroundImage = gfx.image.new('images/halftone.png')
+  assert(backgroundImage)
   local enemyImage = gfx.image.new('images/enemy.png')
   assert(enemyImage)
-
+  local arrowImage = gfx.image.new('images/arrow.png')
+  assert(arrowImage)
   local bulletImage = gfx.image.new('images/bullet.png')
   assert(bulletImage)
 
-  local backgroundImage = gfx.image.new('images/halftone.png')
-  assert(backgroundImage)
-
-  playerSprite = gfx.sprite.new(playerImage)
+  playerTable = gfx.imagetable.new('images/player')
+  playerSprite = gfx.sprite.new(playerTable:getImage(playerDir))
   playerSprite:moveTo(200, 120)
   playerSprite:add()
+
+  arrowSprite = gfx.sprite.new(arrowImage)
+  arrowSprite:setCenter(0.5, 1.0)
+  arrowSprite:moveTo(playerSprite.x, playerSprite.y)
+  arrowSprite:add()
 
   local bw, bh = backgroundImage:getSize()
 
@@ -71,6 +66,8 @@ function setup()
   )
 
   playdate.startAccelerometer()
+
+  playdate.ui.crankIndicator:start()
 end
 
 setup()
@@ -104,6 +101,7 @@ function playdate.update()
   px = playerSprite.x + dx * playerSpeed
   py = playerSprite.y + dy * playerSpeed
   playerSprite:moveTo(px, py)
+  arrowSprite:moveTo(px, py)
 
   function adjustVelocity(targetPos, currentPos, currentVelocity)
     local distance = targetPos - currentPos
@@ -122,6 +120,22 @@ function playdate.update()
   gfx.sprite.redrawBackground()
 
   gfx.sprite.update()
+
+  if playdate.isCrankDocked() then
+    playdate.ui.crankIndicator:update()
+  else
+    local crankAngle = playdate.getCrankPosition()
+
+    local crankDir = math.floor((crankAngle + 22.5) / 45) % 8 + 1
+    if crankDir ~= playerDir then
+      playerDir = crankDir
+      playerSprite:setImage(playerTable:getImage(playerDir))
+    end
+
+    if crankAngle ~= arrowSprite:getRotation() then
+      arrowSprite:setRotation(crankAngle)
+    end
+  end
 
   playdate.timer.updateTimers()
 end
