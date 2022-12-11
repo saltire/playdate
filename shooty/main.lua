@@ -49,7 +49,7 @@ function setup()
   gfx.sprite.setBackgroundDrawingCallback(
     function (x, y, width, height)
       -- Point on the background that goes at the top left of the draw area.
-      local ox, oy = mod(x + cx - 200, bw), mod(y + cy - 120, bh)
+      local ox, oy = mod(round(x + cx - 200, 2), bw), mod(round(y + cy - 120, 2), bh)
       -- Width and height of the section of background to draw.
       local dw, dh = math.min(bw - ox, width), math.min(bh - oy, height)
 
